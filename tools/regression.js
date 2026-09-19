@@ -1,5 +1,5 @@
 'use strict';
-/* Deep regression for TeamConneXtions v1.0.0. Run: node tools/regression.js (server must be up) */
+/* Deep regression for TeamConneXtions v1.0.1. Run: node tools/regression.js (server must be up) */
 const BASE = 'http://127.0.0.1:4100';
 let pass = 0, failCount = 0;
 const failures = [];

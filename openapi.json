@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "TeamConneXtions API",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "The employee-directory API behind the TeamConneXtions demo app. Reading needs any signed-in account; writing needs the admin account. Every error uses one envelope: { \"error\": { \"code\", \"message\", \"details?\" } }. Deliberate business rules to test: deleting your own record returns 403 SELF_DELETE_FORBIDDEN, deleting a manager with direct reports returns 409 EMPLOYEE_HAS_REPORTS (retry with ?reassignTo=<id>), and a duplicate email returns 409 DUPLICATE_EMAIL."
   },
   "servers": [{ "url": "http://127.0.0.1:4100", "description": "Local practice server" }],

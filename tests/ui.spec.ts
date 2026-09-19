@@ -71,6 +71,31 @@ test('every directory column header sorts', async ({ page }) => {
   expect(firstAsc).not.toBe(firstDesc);
 });
 
+test('Actions stays fully visible while every column is sorted at a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 800 });
+  await signIn(page, 'admin', 'admin123');
+  const scroller = page.getByTestId('directory-table-scroll');
+  await expect(scroller).toBeVisible();
+
+  for (const key of ['name', 'title', 'department', 'location', 'status', 'team']) {
+    for (let direction = 0; direction < 2; direction += 1) {
+      await page.getByTestId(`sort-${key}`).click();
+      const bounds = await scroller.boundingBox();
+      const actionBounds = await page.locator('tbody td.actions').first().boundingBox();
+      expect(bounds).not.toBeNull();
+      expect(actionBounds).not.toBeNull();
+      expect(actionBounds!.x).toBeGreaterThanOrEqual(bounds!.x - 1);
+      expect(actionBounds!.x + actionBounds!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width + 1);
+      const teamBounds = await page.getByTestId('sort-team').boundingBox();
+      expect(teamBounds).not.toBeNull();
+      expect(teamBounds!.x + teamBounds!.width).toBeLessThanOrEqual(actionBounds!.x + 1);
+      await expect(page.getByTestId('sort-team')).toBeVisible();
+      await expect(page.locator('[data-testid^="edit-"]').first()).toBeVisible();
+      await expect(page.locator('[data-testid^="delete-"]').first()).toBeVisible();
+    }
+  }
+});
+
 test('department filter options are sorted alphabetically', async ({ page }) => {
   await signIn(page, 'user', 'user123');
   const opts = await page.getByTestId('department-filter').locator('option').allTextContents();

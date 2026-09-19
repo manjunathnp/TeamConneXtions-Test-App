@@ -5,7 +5,7 @@
 
   **A purpose-built employee directory for modern UI and API automation practice.**
 
-  ![Version](https://img.shields.io/badge/version-1.0.0-e8b64c?style=flat-square)
+  ![Version](https://img.shields.io/badge/version-1.0.1-e8b64c?style=flat-square)
   ![Node.js](https://img.shields.io/badge/Node.js-20%2B-43853d?style=flat-square&logo=node.js&logoColor=white)
   ![Playwright](https://img.shields.io/badge/tested_with-Playwright-2ead33?style=flat-square&logo=playwright&logoColor=white)
 </div>

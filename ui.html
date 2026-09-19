@@ -129,8 +129,18 @@ main{padding:34px 0 90px}
 /* ---------- table ---------- */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);overflow:hidden}
 table{width:100%;border-collapse:collapse}
+.directory-card{overflow-x:auto;overflow-y:hidden;position:relative;scrollbar-gutter:stable}
+.employee-table{min-width:1020px;table-layout:fixed}
+.employee-table col.col-name{width:16%}
+.employee-table col.col-title{width:19%}
+.employee-table col.col-department{width:18%}
+.employee-table col.col-location{width:13%}
+.employee-table col.col-status{width:11%}
+.employee-table col.col-team{width:8%}
+.employee-table col.col-actions{width:180px}
+.employee-table th,.employee-table td{overflow:hidden;text-overflow:ellipsis}
 thead th{text-align:left;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700;padding:13px 20px;background:#f9fafc;border-bottom:1px solid var(--line);white-space:nowrap}
-thead th.actions{text-align:right;min-width:170px}
+thead th.actions{text-align:right;min-width:180px}
 thead th.sortable{cursor:pointer;user-select:none;transition:color .12s}
 thead th.sortable:hover{color:var(--brand)}
 thead th.sortable.active{color:var(--brand)}
@@ -147,7 +157,10 @@ thead th .th-arrow-dim{opacity:.35}
 .pg-jump{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
 .pg-jump input{width:64px;height:34px;border:1px solid var(--line-2);border-radius:8px;padding:0 10px;font:inherit;font-size:13px}
 .pg-jump input:focus{outline:none;border-color:var(--brand)}
-tbody td.actions{white-space:nowrap;text-align:right}
+thead th.actions,tbody td.actions{position:sticky;right:0;z-index:2;background:var(--surface);box-shadow:-10px 0 16px -16px rgba(20,28,82,.55)}
+thead th.actions{z-index:3;background:#f9fafc}
+tbody tr:hover td.actions{background:var(--brand-softer)}
+tbody td.actions{white-space:nowrap;text-align:right;overflow:visible}
 tbody td{padding:15px 20px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle;white-space:nowrap}
 tbody tr:last-child td{border-bottom:0}
 tbody tr:hover{background:var(--brand-softer)}
@@ -187,7 +200,8 @@ tbody tr:hover{background:var(--brand-softer)}
 .team-section{margin-top:16px}
 .team-section:first-child{margin-top:0}
 .team-section-h{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
-.rowacts{display:flex;gap:8px;justify-content:flex-end}
+.rowacts{display:flex;gap:6px;justify-content:flex-end}
+.rowacts .btn{padding-left:10px;padding-right:10px}
 .empty{text-align:center;padding:64px 24px;color:var(--muted)}
 .empty svg{width:44px;height:44px;color:var(--line-2);margin-bottom:12px}
 .empty h3{margin:0 0 6px;color:var(--ink);font-size:17px;font-weight:700}
@@ -386,6 +400,16 @@ footer a:hover{text-decoration:underline}
   .panel2{grid-template-columns:1fr}
   .pg-grid{grid-template-columns:1fr 1fr}
   nav.mainnav a{padding:8px 9px}
+  .employee-table{min-width:820px}
+  .employee-table col.col-title{width:18%}
+  .employee-table col.col-department{width:17%}
+  .employee-table col.col-team{width:10%}
+  .employee-table col.col-actions{width:96px}
+  .employee-table th,.employee-table td{padding-left:14px;padding-right:14px}
+  .employee-table th:nth-child(6),.employee-table td:nth-child(6){padding-left:8px;padding-right:8px}
+  .employee-table thead th.actions{min-width:96px;text-align:center}
+  .rowacts .btn{width:38px;height:32px;padding:0;justify-content:center}
+  .rowacts .action-label{display:none}
 }
 @media (max-width:680px){
   header .row{height:auto;flex-wrap:wrap;padding:10px 0}
@@ -426,7 +450,7 @@ footer a:hover{text-decoration:underline}
 
 <footer>
   <div class="wrap fx">
-    <span class="l1">TeamConneXtions v1.0.0 · Demo App for UI &amp; API Automation</span>
+    <span class="l1">TeamConneXtions v1.0.1 · Demo App for UI &amp; API Automation</span>
     <span>Conceptualised and Developed by Manjunath N P&nbsp;|&nbsp;<a href="https://www.linkedin.com/in/manjunathnp/" target="_blank" rel="noopener" data-testid="footer-linkedin">linkedin.com/in/manjunathnp</a></span>
   </div>
 </footer>
@@ -839,15 +863,15 @@ function renderTable(){
       '<button class="team-chip" data-testid="team-toggle-'+e.id+'" onclick="App.toggleTeam('+e.id+')" aria-expanded="false">'+ICON.people+'<span>'+reports+'</span></button>'
       :'<span class="muted team-none">IC</span>';
     return '<tr data-testid="employee-row-'+e.id+'" data-employee-id="'+e.id+'">'+
-      '<td><button class="name-link" data-testid="cell-name-'+e.id+'" onclick="App.openDetail('+e.id+')">'+esc(e.firstname+' '+e.lastname)+'</button></td>'+
-      '<td class="title-cell" data-testid="cell-title-'+e.id+'">'+esc(e.title)+'</td>'+
-      '<td><span class="dept-badge" data-testid="cell-dept-'+e.id+'">'+esc(e.department?e.department.name:'\u2014')+'</span></td>'+
-      '<td class="'+(e.location?'':'muted')+'" data-testid="cell-location-'+e.id+'">'+esc(e.location||'\u2014')+'</td>'+
+      '<td title="'+esc(e.firstname+' '+e.lastname)+'"><button class="name-link" data-testid="cell-name-'+e.id+'" onclick="App.openDetail('+e.id+')">'+esc(e.firstname+' '+e.lastname)+'</button></td>'+
+      '<td class="title-cell" data-testid="cell-title-'+e.id+'" title="'+esc(e.title)+'">'+esc(e.title)+'</td>'+
+      '<td title="'+esc(e.department?e.department.name:'\u2014')+'"><span class="dept-badge" data-testid="cell-dept-'+e.id+'">'+esc(e.department?e.department.name:'\u2014')+'</span></td>'+
+      '<td class="'+(e.location?'':'muted')+'" data-testid="cell-location-'+e.id+'" title="'+esc(e.location||'\u2014')+'">'+esc(e.location||'\u2014')+'</td>'+
       '<td><span class="status-pill '+(e.status==='Active'?'active':'leave')+'" data-testid="cell-status-'+e.id+'">'+esc(e.status)+'</span></td>'+
       '<td class="team-col">'+teamCell+'</td>'+
-      (admin?'<td class="actions"><div class="rowacts"><button class="btn btn-ghost btn-sm" data-testid="edit-'+e.id+'" onclick="App.openForm('+e.id+')">'+ICON.edit+'Edit</button>'+
-        (self?'<button class="btn btn-danger btn-sm" data-testid="delete-'+e.id+'" disabled title="You cannot delete your own record">'+ICON.trash+'Delete</button>'
-             :'<button class="btn btn-danger btn-sm" data-testid="delete-'+e.id+'" onclick="App.openConfirm('+e.id+')">'+ICON.trash+'Delete</button>')+'</div></td>':'')+
+      (admin?'<td class="actions"><div class="rowacts"><button class="btn btn-ghost btn-sm" data-testid="edit-'+e.id+'" aria-label="Edit '+esc(e.firstname+' '+e.lastname)+'" title="Edit employee" onclick="App.openForm('+e.id+')">'+ICON.edit+'<span class="action-label">Edit</span></button>'+
+        (self?'<button class="btn btn-danger btn-sm" data-testid="delete-'+e.id+'" aria-label="Delete '+esc(e.firstname+' '+e.lastname)+'" disabled title="You cannot delete your own record">'+ICON.trash+'<span class="action-label">Delete</span></button>'
+             :'<button class="btn btn-danger btn-sm" data-testid="delete-'+e.id+'" aria-label="Delete '+esc(e.firstname+' '+e.lastname)+'" title="Delete employee" onclick="App.openConfirm('+e.id+')">'+ICON.trash+'<span class="action-label">Delete</span></button>')+'</div></td>':'')+
     '</tr>';
   }).join('');
   var head='<tr>'+
@@ -855,7 +879,8 @@ function renderTable(){
     sortableTh('Location','location')+sortableTh('Status','status')+sortableTh('Team','team')+
     (admin?'<th class="actions">Actions</th>':'')+
   '</tr>';
-  area.innerHTML='<div class="card"><table data-cols="'+(admin?7:6)+'"><thead>'+head+'</thead><tbody data-testid="employees-table">'+rows+'</tbody></table></div>'+
+  var cols='<colgroup><col class="col-name"><col class="col-title"><col class="col-department"><col class="col-location"><col class="col-status"><col class="col-team">'+(admin?'<col class="col-actions">':'')+'</colgroup>';
+  area.innerHTML='<div class="card directory-card" data-testid="directory-table-scroll"><table class="employee-table" data-cols="'+(admin?7:6)+'">'+cols+'<thead>'+head+'</thead><tbody data-testid="employees-table">'+rows+'</tbody></table></div>'+
     pager(pageCount);
 }
 function sortableTh(label,key){
