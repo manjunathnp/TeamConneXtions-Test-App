@@ -1,0 +1,300 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TeamConneXtions API",
+    "version": "1.0.0",
+    "description": "The employee-directory API behind the TeamConneXtions demo app. Reading needs any signed-in account; writing needs the admin account. Every error uses one envelope: { \"error\": { \"code\", \"message\", \"details?\" } }. Deliberate business rules to test: deleting your own record returns 403 SELF_DELETE_FORBIDDEN, deleting a manager with direct reports returns 409 EMPLOYEE_HAS_REPORTS (retry with ?reassignTo=<id>), and a duplicate email returns 409 DUPLICATE_EMAIL."
+  },
+  "servers": [{ "url": "http://127.0.0.1:4100", "description": "Local practice server" }],
+  "tags": [
+    { "name": "System", "description": "Health check and data reset. Public." },
+    { "name": "Auth", "description": "Token login plus standalone API-key and Basic-auth practice endpoints." },
+    { "name": "Employees", "description": "Full CRUD on employees, with role checks and business rules." },
+    { "name": "Organisation", "description": "Departments, the live org tree, and directory insights." },
+    { "name": "Practice", "description": "Delay, echo and any-status endpoints for timeout and negative testing." }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Paste a token from POST /api/auth/login, or use the Authorize button." }
+    },
+    "schemas": {
+      "Employee": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 7 },
+          "firstname": { "type": "string", "example": "Karthik" },
+          "lastname": { "type": "string", "example": "Gowda" },
+          "title": { "type": "string", "example": "Staff Engineer" },
+          "email": { "type": "string", "example": "karthik.gowda@teamconnextions.dev" },
+          "phone": { "type": "string", "example": "+91 98450 20007" },
+          "location": { "type": "string", "example": "Bengaluru" },
+          "status": { "type": "string", "enum": ["Active", "On Leave"], "example": "Active" },
+          "joinedOn": { "type": "string", "example": "2021-03-15" },
+          "departmentId": { "type": "integer", "example": 2 },
+          "managerId": { "type": "integer", "nullable": true, "example": 3 },
+          "department": { "type": "object", "properties": { "id": { "type": "integer" }, "code": { "type": "string" }, "name": { "type": "string" } } },
+          "manager": { "type": "object", "nullable": true, "properties": { "id": { "type": "integer" }, "name": { "type": "string" } } }
+        }
+      },
+      "EmployeeInput": {
+        "type": "object",
+        "required": ["firstname", "lastname", "email", "title", "departmentId"],
+        "properties": {
+          "firstname": { "type": "string", "example": "Meena" },
+          "lastname": { "type": "string", "example": "Rao" },
+          "email": { "type": "string", "example": "meena.rao@teamconnextions.dev" },
+          "title": { "type": "string", "example": "QA Engineer" },
+          "departmentId": { "type": "integer", "example": 3 },
+          "managerId": { "type": "integer", "nullable": true, "example": 4 },
+          "phone": { "type": "string", "example": "+91 90000 00007" },
+          "location": { "type": "string", "example": "Chennai" },
+          "status": { "type": "string", "enum": ["Active", "On Leave"], "example": "Active" },
+          "joinedOn": { "type": "string", "example": "2026-07-01" }
+        }
+      },
+      "AuthRequest": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "example": "admin" },
+          "password": { "type": "string", "example": "admin123" }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "example": "9f8c1a2b3c4d5e6f7a8b9c0d1e2f3a4b" },
+          "username": { "type": "string", "example": "admin" },
+          "role": { "type": "string", "example": "admin" },
+          "employeeId": { "type": "integer", "example": 2 }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "One or more fields failed validation." },
+              "details": { "type": "array", "items": { "type": "object" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/ping": {
+      "get": {
+        "tags": ["System"], "summary": "Health check",
+        "description": "Confirms the server is running. No token needed.",
+        "responses": { "200": { "description": "Server is up.", "content": { "application/json": { "example": { "status": "ok", "app": "TeamConneXtions", "time": "2026-07-30T09:00:00.000Z" } } } } }
+      }
+    },
+    "/api/reset": {
+      "post": {
+        "tags": ["System"], "summary": "Reset the demo data",
+        "description": "Restores the seeded company (~117 employees across 12 departments and 12 worldwide locations). Run it before a suite so every run starts identical.",
+        "responses": { "200": { "description": "Data was reset.", "content": { "application/json": { "example": { "reset": true, "employees": 117, "departments": 12 } } } } }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Auth"], "summary": "Sign in and get a token",
+        "description": "Two accounts exist: admin/admin123 (full access, linked to employee 2) and user/user123 (read only, linked to employee 10). Send the returned token as Authorization: Bearer <token>.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthRequest" } } } },
+        "responses": {
+          "200": { "description": "Signed in.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuthResponse" } } } },
+          "401": { "description": "Wrong username or password (BAD_CREDENTIALS).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": ["Auth"], "summary": "Sign out", "security": [{ "bearerAuth": [] }],
+        "description": "Invalidates the current token on the server.",
+        "responses": { "200": { "description": "Signed out.", "content": { "application/json": { "example": { "loggedOut": true } } } } }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": ["Auth"], "summary": "Who am I", "security": [{ "bearerAuth": [] }],
+        "description": "Returns the signed-in account, its role and its linked employeeId — the record protected by the self-delete rule.",
+        "responses": {
+          "200": { "description": "The current session.", "content": { "application/json": { "example": { "username": "admin", "role": "admin", "employeeId": 2 } } } },
+          "401": { "description": "No token (UNAUTHORIZED).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/apikey": {
+      "get": {
+        "tags": ["Auth"], "summary": "API-key auth practice",
+        "description": "Requires the header X-API-Key: teamconnex-key-2026. Missing key returns 401 MISSING_API_KEY; a wrong key returns 401 INVALID_API_KEY.",
+        "parameters": [{ "name": "X-API-Key", "in": "header", "required": true, "schema": { "type": "string", "default": "teamconnex-key-2026" } }],
+        "responses": {
+          "200": { "description": "Key accepted.", "content": { "application/json": { "example": { "authenticated": true, "method": "api-key" } } } },
+          "401": { "description": "Missing or invalid key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/auth/basic": {
+      "get": {
+        "tags": ["Auth"], "summary": "HTTP Basic auth practice",
+        "description": "Requires HTTP Basic credentials connex/basic123.",
+        "responses": {
+          "200": { "description": "Credentials accepted.", "content": { "application/json": { "example": { "authenticated": true, "method": "basic", "user": "connex" } } } },
+          "401": { "description": "Missing or invalid Basic credentials.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/employees": {
+      "get": {
+        "tags": ["Employees"], "summary": "List employees", "security": [{ "bearerAuth": [] }],
+        "description": "Lists every employee with the department and manager expanded. Optional search matches name, title, email and location. Optional departmentId filters to one department; an unknown id returns 400.",
+        "parameters": [
+          { "name": "search", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter by name, title, email or location." },
+          { "name": "departmentId", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "Filter to one department." }
+        ],
+        "responses": {
+          "200": { "description": "The employees.", "content": { "application/json": { "schema": { "type": "object", "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/Employee" } }, "total": { "type": "integer", "example": 16 } } } } } },
+          "400": { "description": "Unknown departmentId (VALIDATION_ERROR).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "No token (UNAUTHORIZED).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "post": {
+        "tags": ["Employees"], "summary": "Create an employee (admin)", "security": [{ "bearerAuth": [] }],
+        "description": "firstname, lastname, email, title and a valid departmentId are required. A duplicate email returns 409 DUPLICATE_EMAIL. A 201 carries a Location header.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EmployeeInput" } } } },
+        "responses": {
+          "201": { "description": "Employee created.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Employee" } } } },
+          "400": { "description": "A field failed validation (VALIDATION_ERROR, with per-field details).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Signed in as the read-only user (FORBIDDEN).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Another employee already uses that email (DUPLICATE_EMAIL).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/employees/{id}": {
+      "get": {
+        "tags": ["Employees"], "summary": "Get one employee", "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "default": 7 } }],
+        "responses": {
+          "200": { "description": "The employee.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Employee" } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No employee with that id (EMPLOYEE_NOT_FOUND).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "put": {
+        "tags": ["Employees"], "summary": "Replace an employee (admin)", "security": [{ "bearerAuth": [] }],
+        "description": "Replaces every field. All required fields must be present.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "default": 7 } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EmployeeInput" } } } },
+        "responses": {
+          "200": { "description": "Employee updated.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Employee" } } } },
+          "400": { "description": "Validation failed.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Read-only user.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No employee with that id.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Duplicate email.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "patch": {
+        "tags": ["Employees"], "summary": "Update some fields (admin)", "security": [{ "bearerAuth": [] }],
+        "description": "Updates only the fields you send. Sending managerId equal to the employee's own id returns 400.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "default": 7 } }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "properties": { "title": { "type": "string", "example": "Principal Engineer" } } } } } },
+        "responses": {
+          "200": { "description": "Employee updated.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Employee" } } } },
+          "400": { "description": "Validation failed.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Read-only user.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No employee with that id.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "Duplicate email.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      },
+      "delete": {
+        "tags": ["Employees"], "summary": "Delete an employee (admin)", "security": [{ "bearerAuth": [] }],
+        "description": "Two business rules protect the tree. 1) You cannot delete the employee record linked to your own account: 403 SELF_DELETE_FORBIDDEN. 2) A manager with direct reports cannot be deleted on its own: 409 EMPLOYEE_HAS_REPORTS, with the report ids in details. Pass reassignTo with the id of the employee who should take over the team, and the reports are moved and the manager deleted in one call.",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "default": 16 } },
+          { "name": "reassignTo", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "When deleting a manager, move their direct reports to this employee." }
+        ],
+        "responses": {
+          "200": { "description": "Employee deleted.", "content": { "application/json": { "example": { "deleted": true, "id": 16 } } } },
+          "400": { "description": "reassignTo is not a valid employee.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "403": { "description": "Read-only user, or trying to delete your own record (SELF_DELETE_FORBIDDEN).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No employee with that id.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "409": { "description": "The employee still manages people (EMPLOYEE_HAS_REPORTS).", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/employees/{id}/team": {
+      "get": {
+        "tags": ["Employees"], "summary": "An employee's team", "security": [{ "bearerAuth": [] }],
+        "description": "Returns the employee's direct reports and their full sub-tree (skip-level reports too). Powers the Team tab in the UI's employee detail. A non-manager returns empty arrays with counts of 0.",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "default": 1 } }],
+        "responses": {
+          "200": { "description": "The team.", "content": { "application/json": { "example": { "manager": { "id": 1, "name": "Vikram Rao", "title": "Chief Executive Officer" }, "directCount": 6, "totalCount": 116, "direct": [], "all": [] } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "404": { "description": "No employee with that id.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/departments": {
+      "get": {
+        "tags": ["Organisation"], "summary": "List departments with headcounts", "security": [{ "bearerAuth": [] }],
+        "description": "All 12 departments with a live headcount each. Every department is seeded with at least one employee.",
+        "responses": {
+          "200": { "description": "The departments.", "content": { "application/json": { "example": { "data": [{ "id": 2, "code": "ENG", "name": "Engineering", "headcount": 4 }], "total": 6 } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/orgchart": {
+      "get": {
+        "tags": ["Organisation"], "summary": "The reporting tree", "security": [{ "bearerAuth": [] }],
+        "description": "The full org tree as nested employees, each with a reports array. The UI's Org Chart page renders exactly this payload.",
+        "responses": {
+          "200": { "description": "The tree, rooted at employees with no manager.", "content": { "application/json": { "example": { "data": [{ "id": 1, "firstname": "Vikram", "lastname": "Rao", "title": "Chief Executive Officer", "reports": [{ "id": 3, "firstname": "Arjun", "reports": [] }] }] } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/stats": {
+      "get": {
+        "tags": ["Organisation"], "summary": "Directory insights", "security": [{ "bearerAuth": [] }],
+        "description": "Totals, status split, headcount per department, people per location, and the newest hire. Fresh seed values: 117 total, 105 Active, 12 On Leave, 54 managers, 12 locations.",
+        "responses": {
+          "200": { "description": "The stats.", "content": { "application/json": { "example": { "totalEmployees": 117, "totalDepartments": 12, "totalLocations": 12, "active": 105, "onLeave": 12, "managers": 54, "newHiresThisYear": 0, "latestHireYear": 2026 } } } },
+          "401": { "description": "No token.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/delay": {
+      "get": {
+        "tags": ["Practice"], "summary": "Delayed response",
+        "description": "Waits ms milliseconds (default 1000, capped at 10000) before responding. For timeout and waiting practice.",
+        "parameters": [{ "name": "ms", "in": "query", "required": false, "schema": { "type": "integer", "default": 1500 } }],
+        "responses": { "200": { "description": "Responded after the delay.", "content": { "application/json": { "example": { "message": "Responded after 1500 ms.", "delayMs": 1500 } } } } }
+      }
+    },
+    "/api/echo": {
+      "post": {
+        "tags": ["Practice"], "summary": "Echo the request",
+        "description": "Returns your method, path, query, headers and body. Works with any method.",
+        "requestBody": { "required": false, "content": { "application/json": { "example": { "hello": "world" } } } },
+        "responses": { "200": { "description": "The echoed request.", "content": { "application/json": { "example": { "method": "POST", "path": "/api/echo", "body": { "hello": "world" } } } } } }
+      }
+    },
+    "/api/status/{code}": {
+      "get": {
+        "tags": ["Practice"], "summary": "Any status code",
+        "description": "Responds with whatever status code you ask for (200-599). Handy for negative-path handling.",
+        "parameters": [{ "name": "code", "in": "path", "required": true, "schema": { "type": "integer", "default": 418 } }],
+        "responses": { "default": { "description": "The requested status.", "content": { "application/json": { "example": { "requestedStatus": 418 } } } } }
+      }
+    }
+  }
+}

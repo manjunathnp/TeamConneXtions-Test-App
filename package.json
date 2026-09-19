@@ -1,0 +1,20 @@
+{
+  "name": "teamconnextions",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TeamConneXtions - a demo employee directory (UI + API) for hybrid Playwright automation practice.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "regression": "node tools/regression.js",
+    "test": "playwright test",
+    "test:api": "playwright test tests/api.spec.ts",
+    "test:ui": "playwright test tests/ui.spec.ts",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

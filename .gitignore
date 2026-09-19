@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Playwright and test output
+playwright-report/
+test-results/
+blob-report/
+coverage/
+.nyc_output/
+*.trace.zip
+
+# Logs and runtime output
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.pid
+*.pid.lock
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Internal project handover notes
+HANDOVER.md
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files and caches
+.cache/
+.tmp/
+tmp/
+temp/
+*.tmp
+*.bak
